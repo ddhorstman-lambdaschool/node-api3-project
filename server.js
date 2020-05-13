@@ -18,7 +18,6 @@ server.get("/", (req, res) => {
 server.use(errorHandling);
 
 
-
 //middleware
 
 function logger(req, res, next) {
