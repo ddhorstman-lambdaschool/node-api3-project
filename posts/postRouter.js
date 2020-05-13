@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const postDB = require("./postDb");
+const Validator = require("jsonschema").Validator;
 
 router.get("/", async (req, res, next) => {
   try {
@@ -44,18 +45,33 @@ async function validatePostId(req, res, next) {
     req.post = post;
     post
       ? next()
-      : next({ status: 404, message: `${id} is not a valid post ID` });
+      : next({ status: 400, message: `${id} is not a valid post ID` });
   } catch (e) {
     next({ ...e, status: 500, message: "Database error" });
   }
 }
 
+const postSchema = {
+  type: "object",
+  properties: {
+    text: {
+      type: "string",
+    },
+  },
+  required: ["text"],
+};
+
 function validatePost(req, res, next) {
-  if (Object.keys(req.body).length === 0) {
+  const v = new Validator();
+  const { errors } = v.validate(req.body, postSchema);
+  errors.length === 0
+    ? next()
+    : next({ status: 400, message: "Missing required 'text' field", errors });
+  /*if (Object.keys(req.body).length === 0) {
     next({ status: 404, message: "Missing post data" });
   } else if (!req.body.text) {
     next({ status: 404, message: "Missing required 'text' field" });
-  } else next();
+  } else next();*/
 }
 
 module.exports = router;

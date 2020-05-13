@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const userDB = require("./userDb");
 const postDB = require("../posts/postDb");
+const Validator = require("jsonschema").Validator;
 
 router.post("/", validateUser, (req, res, next) => {
   userDB
@@ -72,20 +73,48 @@ async function validateUserId(req, res, next) {
   }
 }
 
-function validateUser(req, res, next) {
-  if (Object.keys(req.body).length === 0) {
-    next({ status: 404, message: "Missing user data" });
-  } else if (!req.body.name) {
-    next({ status: 404, message: "Missing required 'name' field" });
-  } else next();
+const userSchema = {
+  type: "object",
+  properties: {
+    name: {
+      type: "string",
+    },
+  },
+  required: ["name"],
+};
+
+async function validateUser(req, res, next) {
+  const v = new Validator();
+  const { errors } = v.validate(req.body, userSchema);
+  if (errors.length !== 0) {
+    next({ status: 400, message: "Missing required 'name' field", errors });
+  } else {
+    const users = await userDB.get();
+    users.find(user => user.name === req.body.name)
+      ? next({
+          status: 400,
+          message: `A user named '${req.body.name}' already exists.`,
+        })
+      : next();
+  }
 }
 
+const postSchema = {
+  type: "object",
+  properties: {
+    text: {
+      type: "string",
+    },
+  },
+  required: ["text"],
+};
+
 function validatePost(req, res, next) {
-  if (Object.keys(req.body).length === 0) {
-    next({ status: 404, message: "Missing post data" });
-  } else if (!req.body.text) {
-    next({ status: 404, message: "Missing required 'text' field" });
-  } else next();
+  const v = new Validator();
+  const { errors } = v.validate(req.body, postSchema);
+  errors.length === 0
+    ? next()
+    : next({ status: 400, message: "Missing required 'text' field", errors });
 }
 
 module.exports = router;
