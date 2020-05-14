@@ -19,7 +19,7 @@ router.post("/:id/posts", validateUserId, validatePost, (req, res, next) => {
 
 router.get("/", async (req, res, next) => {
   try {
-    res.status(200).json(await userDB.get());
+    res.status(200).json({users: await userDB.get()});
   } catch (e) {
     next({ ...e, status: 500, message: "Database error" });
   }
